@@ -50,7 +50,7 @@ def batch_scan(files):
     return summary, grid
 
 
-with gr.Blocks(theme=gr.themes.Citrus(), title="Leaf check") as demo:
+with gr.Blocks(title="Leaf check") as demo:
     gr.Markdown("# Leaf check\nUpload a photo of an apple or grape leaf.")
 
     with gr.Tabs():
@@ -77,4 +77,4 @@ with gr.Blocks(theme=gr.themes.Citrus(), title="Leaf check") as demo:
 
 
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(theme=gr.themes.Citrus())
