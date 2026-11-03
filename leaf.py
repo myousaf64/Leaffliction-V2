@@ -13,6 +13,11 @@ Two traps this module handles:
    from a score near 1.0 is almost zero and the heatmap turns to noise. This
    module takes the gradient from the linear layer output instead, before the
    softmax.
+3. Ultralytics shares one nn.SiLU instance across the whole network, so
+   named_modules() reports it once and "model.10.conv.act" has no full-network
+   name. A hook on that shared object fires for every layer. This module hooks
+   the Conv block of the Classify head instead. Its output is already
+   post-activation.
 """
 
 import os
@@ -29,7 +34,6 @@ from ultralytics import YOLO
 from ultralytics.data.augment import classify_transforms
 
 IMGSZ = 224
-CAM_LAYER = "model.10.conv.act"
 BATCH_CAP = 64
 ALPHA = 0.4
 
@@ -82,12 +86,15 @@ def load(verbose=True):
     for param in net.parameters():
         param.requires_grad_(True)
 
-    modules = dict(net.named_modules())
-    if CAM_LAYER not in modules:
-        sys.exit(f"layer {CAM_LAYER} is not in this model. Modules: {list(modules)[-8:]}")
-    linear_name, linear = [
-        (n, m) for n, m in net.named_modules() if isinstance(m, torch.nn.Linear)
-    ][-1]
+    # Found by structure, not by name, so a change of layer count cannot
+    # silently point the heatmap at the wrong place.
+    head = net.model[-1]
+    if not hasattr(head, "conv") or not hasattr(head, "linear"):
+        sys.exit(f"the last module is {type(head).__name__}, not a Classify head")
+    target = head.conv
+    target_name = f"model.{len(net.model) - 1}.conv"
+    linear = head.linear
+    linear_name = f"model.{len(net.model) - 1}.linear"
 
     cache = {}
 
@@ -99,7 +106,7 @@ def load(verbose=True):
     def on_logits(_module, _inputs, output):
         cache["logits"] = output
 
-    modules[CAM_LAYER].register_forward_hook(on_activation)
+    target.register_forward_hook(on_activation)
     linear.register_forward_hook(on_logits)
 
     _state.update(
@@ -114,11 +121,15 @@ def load(verbose=True):
     warm = Image.fromarray(noise)
     answer(warm)
     batch_answer([warm])
+    activation = cache["act"]
+    _state["shape"] = (activation.shape[1], activation.shape[2])
 
     if verbose:
         print(f"weights:   {weights_path()}")
         print(f"device:    {device}")
-        print(f"cam layer: {CAM_LAYER}  (gradient from {linear_name})")
+        channels, size = _state["shape"]
+        print(f"cam layer: {target_name}  ->  {channels} channels at {size}x{size}")
+        print(f"gradient:  {linear_name} output, before the softmax")
     return _state
 
 
@@ -206,7 +217,11 @@ def batch_answer(images):
             tensor = torch.stack(
                 [state["transform"](to_pil(image)) for image in chunk]
             ).to(state["device"])
-            scores = state["net"](tensor).detach()
+            # The model return value is not always a plain tensor, so read the
+            # logits from the same hook the single-image path uses.
+            state["cache"].clear()
+            state["net"](tensor)
+            scores = state["cache"]["logits"].detach().softmax(1)
             for row in scores:
                 index = int(row.argmax())
                 name = state["names"][index]
