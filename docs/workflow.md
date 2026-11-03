@@ -16,7 +16,8 @@ through a pull request does not apply here.
 ## Release
 
 <!-- How a change reaches production, if it does. -->
-TODO
+Nothing deploys. The app runs locally for a demo recording. The only released
+artifact is the repository itself and the recording made from it.
 
 ## Traps
 
