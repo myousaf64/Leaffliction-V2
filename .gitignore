@@ -1,0 +1,17 @@
+# dataset: never commit
+images/
+data/
+
+# training output
+runs/
+*.pt
+
+# python
+.venv/
+__pycache__/
+
+# agent plan files
+role-you-are-*.md
+
+# predict.py output
+*_cam.png
