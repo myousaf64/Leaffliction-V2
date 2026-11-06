@@ -1,0 +1,24 @@
+Leaffliction v2 - splits report
+source          : /home/user1/kali/Projects/github/myousaf64/repos/Leaffliction-V3/images
+seed            : 42
+fractions       : train 0.70 / val 0.15 / test 0.15
+split order     : split first, augment second. Augmented copies exist in train only.
+grouping        : v1 leftover copies (image (N)_Rotate.JPG) share a split with their
+                  parent image (N).JPG. The split is stratified over parent groups.
+balance target  : 1148 per train class (cap 1200)
+
+class                    total   train    val   test  train_aug   added
+-----------------------------------------------------------------------
+Apple_Black_rot            626     438     93     95       1148     710
+Apple_healthy             1640    1148    246    246       1148       0
+Apple_rust                 281     196     46     39       1148     952
+Apple_scab                 629     440     94     95       1148     708
+Grape_Black_rot           1178     824    176    178       1148     324
+Grape_Esca                1382     967    207    208       1148     181
+Grape_healthy              422     295     63     64       1148     853
+Grape_spot                1075     752    161    162       1148     396
+-----------------------------------------------------------------------
+TOTAL                     7233    5060   1086   1087       9184    4124
+
+Augmentation ops: horizontal flip, vertical flip, rotate 90/180/270,
+brightness 0.8-1.2, contrast 0.8-1.2. Every copy gets at least one geometric op.

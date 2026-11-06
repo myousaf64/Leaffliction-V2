@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leaffliction</title>
+<style>
+:root{
+  --forest:#173F35; --lime:#A8CF45; --sage:#E9F0E6; --ivory:#F8F7F0;
+  --terracotta:#D77B50; --terracotta-text:#A8522E; --charcoal:#26332E;
+  --font:ui-sans-serif,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --r:14px;
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{
+  background:var(--ivory); color:var(--charcoal); font-family:var(--font);
+  -webkit-font-smoothing:antialiased; display:flex; flex-direction:column;
+}
+
+/* ---- navbar ---- */
+header{
+  background:var(--forest); color:var(--ivory);
+  padding:14px clamp(16px,4vw,40px); display:flex; align-items:center;
+  gap:14px; flex-wrap:wrap; border-bottom:3px solid var(--lime);
+}
+.mark{width:26px;height:26px;flex:none;color:var(--lime)}
+header h1{font-size:clamp(17px,2.2vw,21px);font-weight:700;letter-spacing:-.01em}
+header p{font-size:13px;color:var(--sage);margin-left:auto;max-width:38ch;line-height:1.35}
+
+/* ---- layout: 2 columns when wide, 1 when tall ---- */
+main{
+  flex:1; display:grid; gap:clamp(16px,2.2vw,26px);
+  padding:clamp(16px,2.6vw,30px); align-content:start;
+  grid-template-columns:minmax(0,1fr);
+}
+@media (min-width:900px) and (min-aspect-ratio:1/1){
+  main{grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr); align-content:stretch}
+}
+.card{
+  background:var(--sage); border-radius:var(--r); padding:clamp(14px,2vw,22px);
+  border:1px solid #d6e0d2; min-width:0;
+}
+
+/* ---- image stage ---- */
+#stage{
+  position:relative; width:100%; aspect-ratio:1/1; border-radius:10px;
+  overflow:hidden; background:var(--ivory); display:grid; place-items:center;
+  border:2px dashed #c3d1bd; cursor:pointer; transition:border-color .15s;
+}
+#stage.armed{border-color:var(--lime);border-style:solid}
+#stage.has-image{border-style:solid;border-color:#c3d1bd;cursor:default}
+#stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+#heat.off{display:none}
+.empty{text-align:center;padding:24px;color:var(--forest);max-width:30ch}
+.empty svg{width:40px;height:40px;color:var(--forest);opacity:.55;margin-bottom:10px}
+.empty b{display:block;font-size:16px;margin-bottom:6px}
+.empty span{font-size:13px;line-height:1.5;opacity:.85}
+
+/* ---- controls ---- */
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px}
+button{
+  font:inherit;font-weight:650;font-size:14px;padding:10px 18px;border:0;
+  border-radius:999px;background:var(--lime);color:var(--forest);cursor:pointer;
+}
+button:hover{filter:brightness(1.06)}
+button:focus-visible,#stage:focus-visible,input:focus-visible{outline:3px solid var(--forest);outline-offset:2px}
+button.ghost{background:transparent;color:var(--forest);border:1.5px solid var(--forest)}
+label.slider{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:var(--forest);flex:1;min-width:190px}
+input[type=range]{flex:1;min-width:90px;accent-color:var(--forest)}
+.keys{margin-top:12px;font-size:12px;color:var(--forest);opacity:.85;line-height:1.7}
+kbd{
+  font-family:var(--mono);font-size:11px;background:var(--ivory);color:var(--charcoal);
+  border:1px solid #c3d1bd;border-bottom-width:2px;border-radius:5px;padding:1px 6px;
+}
+
+/* ---- verdict ---- */
+.badge{
+  display:inline-flex;align-items:center;gap:9px;font-size:15px;font-weight:700;
+  padding:9px 16px;border-radius:999px;border:2px solid transparent;
+}
+.badge svg{width:19px;height:19px;flex:none}
+.badge.healthy{background:var(--forest);color:var(--ivory);border-color:var(--forest)}
+.badge.diseased{background:var(--ivory);color:var(--terracotta-text);border-color:var(--terracotta)}
+.badge.unknown{background:var(--ivory);color:var(--forest);border-color:var(--forest)}
+h2#label{font-size:clamp(26px,4.4vw,40px);line-height:1.1;letter-spacing:-.02em;margin:16px 0 4px}
+h2#label.healthy{color:var(--forest)}
+h2#label.diseased{color:var(--terracotta-text)}
+.sub{font-size:13px;color:var(--charcoal);opacity:.75}
+.bar{height:12px;border-radius:999px;background:#fff;overflow:hidden;margin:8px 0 6px;border:1px solid #d6e0d2}
+.bar>i{display:block;height:100%;width:0;border-radius:999px;transition:width .35s ease}
+.bar>i.healthy{background:var(--forest)}
+.bar>i.diseased{background:var(--terracotta)}
+.meter{display:flex;justify-content:space-between;font-size:12px;font-weight:650;color:var(--forest);margin-top:18px;text-transform:uppercase;letter-spacing:.06em}
+ol#top3{list-style:none;padding:0;margin:18px 0 0;display:grid;gap:7px}
+ol#top3 li{display:grid;grid-template-columns:1fr auto;gap:10px;font-size:14px;padding:9px 12px;background:var(--ivory);border-radius:8px}
+ol#top3 li:first-child{font-weight:700}
+ol#top3 b{font-family:var(--mono);font-weight:650}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.stat{background:var(--ivory);border-radius:8px;padding:9px 13px;min-width:94px}
+.stat span{display:block;font-size:10.5px;font-weight:700;color:var(--forest);text-transform:uppercase;letter-spacing:.07em}
+.stat b{font-family:var(--mono);font-size:18px;font-weight:650;color:var(--charcoal)}
+.note{margin-top:16px;font-size:13px;line-height:1.5;padding:11px 14px;border-radius:9px;
+  background:var(--ivory);border-left:4px solid var(--terracotta);color:var(--terracotta-text)}
+.note[hidden]{display:none}
+.idle{color:var(--forest);opacity:.75;font-size:14px;line-height:1.6}
+footer{padding:0 clamp(16px,2.6vw,30px) 20px;font-size:11.5px;color:var(--charcoal);opacity:.6;line-height:1.6}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+</style>
+</head>
+<body>
+
+<header>
+  <svg class="mark" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M12 21c-.5-4.6.6-8.2 3.4-11C18 7.4 20.3 6.4 21 6c.5 4.3-.3 7.8-2.6 10.3-2 2.2-4.3 3-6.4 3.2V21Z"/>
+    <path d="M11 21c-4.2-.3-7-2-8.4-5.2C1.3 12.8 2.2 9.3 3 7.6c3.6 1.4 6 3.6 7.2 6.4.8 2 1 4.3.8 7Z" opacity=".65"/>
+  </svg>
+  <h1>Leaffliction</h1>
+  <p>Early crop disease detection from a phone photo. Apple and grape leaves, 8 classes.</p>
+</header>
+
+<main>
+  <section class="card">
+    <div id="stage" class="" tabindex="0" role="button" aria-label="Choose or drop a leaf photo">
+      <div class="empty" id="empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+          <path d="M12 16V4m0 0L8 8m4-4 4 4" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M3 15v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3" stroke-linecap="round"/>
+        </svg>
+        <b>Drop a leaf photo</b>
+        <span>Or click to choose a file. On a phone this opens the camera.</span>
+      </div>
+      <img id="photo" alt="" hidden>
+      <img id="heat" alt="" hidden>
+    </div>
+
+    <div class="row">
+      <button id="pick">Choose photo</button>
+      <button id="toggle" class="ghost" aria-pressed="true">Hide heatmap</button>
+    </div>
+    <div class="row">
+      <label class="slider" for="opacity">
+        Heatmap
+        <input id="opacity" type="range" min="0" max="100" value="55" aria-label="Heatmap opacity">
+        <output id="opval" style="font-family:var(--mono);min-width:3.4ch">55%</output>
+      </label>
+    </div>
+    <p class="keys"><kbd>Space</kbd> new photo &nbsp;&nbsp; <kbd>H</kbd> toggle heatmap</p>
+    <input id="file" type="file" accept="image/*" capture="environment" class="sr">
+  </section>
+
+  <section class="card" aria-live="polite">
+    <span class="badge unknown" id="badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1" stroke-linecap="round"/>
+      </svg>
+      <span id="badgetext">No photo yet</span>
+    </span>
+    <h2 id="label">Awaiting a leaf</h2>
+    <p class="sub" id="sub">Pick a photo to run the classifier.</p>
+
+    <div class="meter"><span>Confidence</span><span id="confval">-</span></div>
+    <div class="bar"><i id="barfill"></i></div>
+
+    <p class="note" id="note" hidden></p>
+    <ol id="top3"><li class="idle" style="grid-template-columns:1fr">Top-3 predictions appear here.</li></ol>
+
+    <div class="stats">
+      <div class="stat"><span>Inference</span><b id="ms">-</b></div>
+      <div class="stat"><span>Device</span><b id="dev">-</b></div>
+      <div class="stat"><span>Input</span><b>224px</b></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  yolo11n-cls fine-tuned on the PlantVillage apple and grape subset. Grad-CAM shows the pixels that drove
+  the prediction. Ultralytics YOLO11 is AGPL-3.0; commercial use needs an Ultralytics licence.
+</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const stage=$('stage'), photo=$('photo'), heat=$('heat'), empty=$('empty');
+const badge=$('badge'), badgetext=$('badgetext'), label=$('label'), sub=$('sub');
+const bar=$('barfill'), confval=$('confval'), note=$('note'), top3=$('top3');
+const file=$('file'), opacity=$('opacity'), opval=$('opval'), toggle=$('toggle');
+
+const diseaseName = s => {
+  const [crop, ...rest] = s.split('_');
+  return crop + ' ' + rest.join(' ').toLowerCase();
+};
+
+let heatOn = true;
+function applyHeat(){
+  heat.style.opacity = opacity.value/100;
+  heat.classList.toggle('off', !heatOn);
+  opval.textContent = opacity.value + '%';
+  toggle.textContent = heatOn ? 'Hide heatmap' : 'Show heatmap';
+  toggle.setAttribute('aria-pressed', String(heatOn));
+}
+opacity.addEventListener('input', applyHeat);
+toggle.addEventListener('click', () => { heatOn = !heatOn; applyHeat(); });
+applyHeat();
+
+$('pick').addEventListener('click', e => { e.stopPropagation(); file.click(); });
+stage.addEventListener('click', () => file.click());
+stage.addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); file.click(); }
+});
+file.addEventListener('change', () => file.files[0] && send(file.files[0]));
+
+['dragenter','dragover'].forEach(t => stage.addEventListener(t, e => {
+  e.preventDefault(); stage.classList.add('armed');
+}));
+['dragleave','drop'].forEach(t => stage.addEventListener(t, e => {
+  e.preventDefault(); stage.classList.remove('armed');
+}));
+stage.addEventListener('drop', e => {
+  const f = e.dataTransfer.files[0];
+  if (f) send(f);
+});
+
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input,button,select,textarea')) return;
+  if (e.code === 'Space') { e.preventDefault(); file.click(); }
+  else if (e.key === 'h' || e.key === 'H') { heatOn = !heatOn; applyHeat(); }
+});
+
+const ICON = {
+  healthy:'<path d="M12 21c-.5-4.6.6-8.2 3.4-11C18 7.4 20.3 6.4 21 6c.5 4.3-.3 7.8-2.6 10.3-2 2.2-4.3 3-6.4 3.2V21Z" fill="currentColor" stroke="none"/><path d="M11 21c-4.2-.3-7-2-8.4-5.2C1.3 12.8 2.2 9.3 3 7.6c3.6 1.4 6 3.6 7.2 6.4.8 2 1 4.3.8 7Z" fill="currentColor" stroke="none" opacity=".6"/>',
+  diseased:'<path d="M12 3 2.5 20h19L12 3Z" stroke-linejoin="round"/><path d="M12 9v5m0 3h.01" stroke-linecap="round"/>',
+  unknown:'<circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1" stroke-linecap="round"/>'
+};
+function setBadge(state, text){
+  badge.className = 'badge ' + state;
+  badge.querySelector('svg').innerHTML = ICON[state];
+  badgetext.textContent = text;
+}
+
+function fail(msg){
+  setBadge('unknown','Could not read that');
+  label.className=''; label.textContent='No prediction';
+  sub.textContent='';
+  note.hidden = false; note.textContent = msg;
+  bar.style.width='0'; bar.className=''; confval.textContent='-';
+  top3.innerHTML = '<li class="idle" style="grid-template-columns:1fr">No result.</li>';
+  $('ms').textContent='-'; $('dev').textContent='-';
+}
+
+async function send(f){
+  empty.hidden = true;
+  photo.hidden = false; heat.hidden = false;
+  stage.classList.add('has-image');
+  photo.src = URL.createObjectURL(f);
+  setBadge('unknown','Analysing');
+  label.className=''; label.textContent='Analysing...';
+  sub.textContent = f.name;
+  note.hidden = true;
+
+  const body = new FormData(); body.append('file', f);
+  let data;
+  try {
+    const res = await fetch('/predict', {method:'POST', body});
+    data = await res.json();
+    if (!res.ok) return fail(data.detail || ('HTTP ' + res.status));
+  } catch (err) { return fail('Backend unreachable. Is run_demo.sh still running?'); }
+
+  photo.src = data.image_png;   // the 224 crop, so photo and heatmap align exactly
+  heat.src = data.heatmap_png;
+  const top = data.top3[0];
+  const healthy = data.healthy;
+  const state = data.uncertain ? 'unknown' : (healthy ? 'healthy' : 'diseased');
+
+  if (data.uncertain){
+    setBadge('unknown','Uncertain');
+    label.className=''; label.textContent='Not sure';
+    sub.textContent = 'Best guess ' + diseaseName(top.label) + '. This may not be an apple or grape leaf.';
+    note.hidden = false;
+    note.textContent = 'Top confidence ' + (top.confidence*100).toFixed(1) +
+      '% is below the 40% threshold, so no diagnosis is shown.';
+  } else if (healthy){
+    setBadge('healthy','Healthy');
+    label.className='healthy'; label.textContent = 'Healthy';
+    sub.textContent = top.label.split('_')[0] + ' leaf, no disease detected.';
+  } else {
+    setBadge('diseased','Diseased');
+    label.className='diseased'; label.textContent = diseaseName(top.label);
+    sub.textContent = 'Diseased: ' + diseaseName(top.label) + '. Heatmap marks the lesions.';
+  }
+
+  const pct = top.confidence*100;
+  bar.className = state === 'diseased' ? 'diseased' : 'healthy';
+  bar.style.width = pct.toFixed(1) + '%';
+  confval.textContent = pct.toFixed(1) + '%';
+
+  top3.innerHTML = data.top3.map(p =>
+    `<li><span>${diseaseName(p.label)}</span><b>${(p.confidence*100).toFixed(1)}%</b></li>`).join('');
+  $('ms').textContent = data.inference_ms.toFixed(1) + 'ms';
+  $('dev').textContent = data.device.toUpperCase();
+}
+</script>
+</body>
+</html>
