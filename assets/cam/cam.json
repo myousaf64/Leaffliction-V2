@@ -1,0 +1,63 @@
+{
+  "target_layer": "head",
+  "probe_scores": {
+    "head": 0.7896428803602854,
+    "backbone": 0.7003276000420252
+  },
+  "examples": [
+    {
+      "stem": "0_correct_Grape_spot",
+      "source": "dataset/test/Grape_spot/image (453).JPG",
+      "truth": "Grape_spot",
+      "pred": "Grape_spot",
+      "confidence": 1.0,
+      "mask_overlap": 0.8916,
+      "kind": "correct"
+    },
+    {
+      "stem": "1_correct_Apple_Black_rot",
+      "source": "dataset/test/Apple_Black_rot/image (104).JPG",
+      "truth": "Apple_Black_rot",
+      "pred": "Apple_Black_rot",
+      "confidence": 1.0,
+      "mask_overlap": 0.7363,
+      "kind": "correct"
+    },
+    {
+      "stem": "2_correct_Apple_healthy",
+      "source": "dataset/test/Apple_healthy/image (516).JPG",
+      "truth": "Apple_healthy",
+      "pred": "Apple_healthy",
+      "confidence": 0.9997,
+      "mask_overlap": 0.6398,
+      "kind": "correct"
+    },
+    {
+      "stem": "3_correct_Apple_scab",
+      "source": "dataset/test/Apple_scab/image (66).JPG",
+      "truth": "Apple_scab",
+      "pred": "Apple_scab",
+      "confidence": 1.0,
+      "mask_overlap": 0.7041,
+      "kind": "correct"
+    },
+    {
+      "stem": "4_correct_Grape_Black_rot",
+      "source": "dataset/test/Grape_Black_rot/image (839).JPG",
+      "truth": "Grape_Black_rot",
+      "pred": "Grape_Black_rot",
+      "confidence": 1.0,
+      "mask_overlap": 0.7936,
+      "kind": "correct"
+    },
+    {
+      "stem": "5_failure_Grape_Esca",
+      "source": "dataset/test/Grape_Esca/image (233).JPG",
+      "truth": "Grape_Esca",
+      "pred": "Grape_Black_rot",
+      "confidence": 0.7792,
+      "mask_overlap": 0.775,
+      "kind": "failure"
+    }
+  ]
+}

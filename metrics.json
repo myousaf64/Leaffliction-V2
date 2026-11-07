@@ -1,0 +1,166 @@
+{
+  "classes": [
+    "Apple_Black_rot",
+    "Apple_healthy",
+    "Apple_rust",
+    "Apple_scab",
+    "Grape_Black_rot",
+    "Grape_Esca",
+    "Grape_healthy",
+    "Grape_spot"
+  ],
+  "test": {
+    "accuracy": 0.9954,
+    "top5": 1.0,
+    "correct": 1082,
+    "n": 1087
+  },
+  "per_class": {
+    "Apple_Black_rot": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 95
+    },
+    "Apple_healthy": {
+      "precision": 0.996,
+      "recall": 1.0,
+      "f1": 0.998,
+      "support": 246
+    },
+    "Apple_rust": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 39
+    },
+    "Apple_scab": {
+      "precision": 1.0,
+      "recall": 0.9895,
+      "f1": 0.9947,
+      "support": 95
+    },
+    "Grape_Black_rot": {
+      "precision": 0.978,
+      "recall": 1.0,
+      "f1": 0.9889,
+      "support": 178
+    },
+    "Grape_Esca": {
+      "precision": 1.0,
+      "recall": 0.9856,
+      "f1": 0.9927,
+      "support": 208
+    },
+    "Grape_healthy": {
+      "precision": 1.0,
+      "recall": 0.9844,
+      "f1": 0.9921,
+      "support": 64
+    },
+    "Grape_spot": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 162
+    }
+  },
+  "confusion_matrix": [
+    [
+      95,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      246,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      39,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      1,
+      0,
+      94,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      178,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      3,
+      205,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      63,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      162
+    ]
+  ],
+  "latency_ms": {
+    "gpu": 2.05,
+    "cpu": 6.777,
+    "batch": 1,
+    "warmup": 10,
+    "runs": 100,
+    "gpu_device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU"
+  },
+  "model": {
+    "weights": "runs/cls/weights/best.pt",
+    "arch": "yolo11n-cls",
+    "size_mb": 3.2,
+    "params": 1541352,
+    "imgsz": 224
+  },
+  "split_seed": 42
+}
