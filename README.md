@@ -3,7 +3,7 @@
 Drop in a photo of an apple or grape leaf. The model names the disease, says how sure it is, and
 paints a heatmap over the exact pixels it used to decide.
 
-![demo](docs/demo.gif)
+![demo](./docs/demo.gif)
 <!-- PLACEHOLDER: docs/demo.gif does not exist yet. Record it with the shot list in LAUNCH.md
      (run `python linkedin.py` to generate that file), then drop the GIF at docs/demo.gif. -->
 
@@ -34,9 +34,19 @@ python3.10 -m venv .venv && .venv/bin/pip install -r requirements.txt
 
 In the page:
 
-- Drag a leaf photo onto the drop zone, or click it to pick a file. On a phone it opens the camera.
+- Drag one leaf photo onto the drop zone, or drag a dozen. Click it to pick files instead.
+  On a phone the picker offers the camera.
+- **Choose folder** points it at a whole directory and classifies every image inside.
+  Chrome and Edge support this; Firefox ignores it, so drag the files in there.
+- With more than one photo you get a filmstrip and a summary line:
+  `8 leaves · 5 diseased · 3 healthy · 446 ms total, 6.5 ms per leaf`. Each thumbnail carries a
+  forest dot for healthy, terracotta for diseased, a hollow ring for uncertain.
+- Click a thumbnail, or use `←` and `→`, to put any photo in the large view.
 - The slider fades the Grad-CAM heatmap in and out.
-- `H` toggles the heatmap. `Space` picks a new photo.
+- `H` toggles the heatmap. `Space` picks new photos.
+
+Batch limits: 32 images per request, 64 MB in total. A file that is not a readable image is
+reported on its own thumbnail and does not spoil the rest of the batch.
 
 Use a different port with `PORT=8080 ./run_demo.sh`.
 
@@ -159,6 +169,9 @@ The honest number after the fix is lower. It is also real.
 | `CUDA out of memory` during training | `pipeline.py train` retries at batch 16 then 8 by itself. If all three fail, close other GPU processes or pass `--batch 8`. |
 | `missing dataset directory: .../images` | The dataset is not in the repository. See "Reproduce the model from scratch". |
 | `missing metrics.json` from `assets.py` or `linkedin.py` | Run `pipeline.py eval` first. Both scripts refuse to invent numbers. |
+| `33 files. The limit is 32 images at a time.` | Batch cap. Send fewer, or run two batches. |
+| `The batch is over 64 MB. Send fewer photos.` | Total upload cap. Individual files are capped at 10 MB. |
+| **Choose folder** does nothing | Firefox does not support `webkitdirectory`. Drag the files onto the drop zone instead. |
 | The page loads but every upload fails | The backend died. Check the terminal running `run_demo.sh`. |
 
 ## Files
@@ -168,7 +181,7 @@ The honest number after the fix is lower. It is also real.
 | `pipeline.py` | split, train, eval, cam, export. Also the shared module: `load_model`, `preprocess`, `predict`, `gradcam`, `leaf_mask` |
 | `assets.py` | the six 1080x1350 PNGs and `carousel.pdf`, every number read from `metrics.json` |
 | `linkedin.py` | generates `LAUNCH.md`: post copy, carousel order, recording shot list, checklist |
-| `server.py` | FastAPI. `POST /predict` returns top-3, Grad-CAM PNG, inference ms |
+| `server.py` | FastAPI. `POST /predict` for one image, `POST /predict-batch` for up to 32, both returning top-3, a Grad-CAM overlay and inference ms |
 | `index.html` | the demo page. One file, no framework, no build step |
 | `run_demo.sh` | starts the backend, waits for it, opens the page |
 | `splits_report.txt`, `metrics.json` | generated, the source of every published number |
