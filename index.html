@@ -58,6 +58,34 @@ main{
 .empty b{display:block;font-size:16px;margin-bottom:6px}
 .empty span{font-size:13px;line-height:1.5;opacity:.85}
 
+/* ---- filmstrip ---- */
+#summary{
+  margin-top:14px;font-size:13px;font-weight:600;color:var(--charcoal);
+  line-height:1.5;
+}
+#summary b{font-family:var(--mono);font-weight:650}
+#summary[hidden],#strip[hidden]{display:none}
+#strip{
+  display:flex;gap:8px;margin-top:10px;padding:4px 2px 10px;
+  overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:thin;
+}
+.thumb{
+  position:relative;flex:none;width:74px;height:74px;padding:0;border-radius:9px;
+  overflow:hidden;background:var(--ivory);border:2px solid transparent;
+  cursor:pointer;scroll-snap-align:center;
+}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb.sel{border-color:var(--forest)}
+.thumb.bad{display:grid;place-items:center;border-color:var(--terracotta);
+  border-style:dashed;color:var(--terracotta-text);font-size:22px;font-weight:700}
+.dot{
+  position:absolute;right:4px;bottom:4px;width:13px;height:13px;border-radius:50%;
+  border:2px solid var(--ivory);
+}
+.dot.healthy{background:var(--forest)}
+.dot.diseased{background:var(--terracotta)}
+.dot.unknown{background:var(--ivory);box-shadow:inset 0 0 0 2px var(--forest)}
+
 /* ---- controls ---- */
 .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px}
 button{
@@ -128,15 +156,19 @@ footer{padding:0 clamp(16px,2.6vw,30px) 20px;font-size:11.5px;color:var(--charco
           <path d="M12 16V4m0 0L8 8m4-4 4 4" stroke-linecap="round" stroke-linejoin="round"/>
           <path d="M3 15v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3" stroke-linecap="round"/>
         </svg>
-        <b>Drop a leaf photo</b>
-        <span>Or click to choose a file. On a phone this opens the camera.</span>
+        <b>Drop one leaf photo, or many</b>
+        <span>Or click to choose files. On a phone the picker offers the camera.</span>
       </div>
       <img id="photo" alt="" hidden>
       <img id="heat" alt="" hidden>
     </div>
 
+    <p id="summary" hidden></p>
+    <div id="strip" role="tablist" aria-label="Analysed photos" hidden></div>
+
     <div class="row">
-      <button id="pick">Choose photo</button>
+      <button id="pick">Choose photos</button>
+      <button id="pickdir" class="ghost">Choose folder</button>
       <button id="toggle" class="ghost" aria-pressed="true">Hide heatmap</button>
     </div>
     <div class="row">
@@ -146,8 +178,10 @@ footer{padding:0 clamp(16px,2.6vw,30px) 20px;font-size:11.5px;color:var(--charco
         <output id="opval" style="font-family:var(--mono);min-width:3.4ch">55%</output>
       </label>
     </div>
-    <p class="keys"><kbd>Space</kbd> new photo &nbsp;&nbsp; <kbd>H</kbd> toggle heatmap</p>
-    <input id="file" type="file" accept="image/*" capture="environment" class="sr">
+    <p class="keys"><kbd>Space</kbd> new photos &nbsp;&nbsp; <kbd>H</kbd> toggle heatmap
+      &nbsp;&nbsp; <kbd>&larr;</kbd> <kbd>&rarr;</kbd> step through the strip</p>
+    <input id="file" type="file" accept="image/*" multiple class="sr">
+    <input id="folder" type="file" accept="image/*" multiple webkitdirectory class="sr">
   </section>
 
   <section class="card" aria-live="polite">
@@ -185,6 +219,10 @@ const stage=$('stage'), photo=$('photo'), heat=$('heat'), empty=$('empty');
 const badge=$('badge'), badgetext=$('badgetext'), label=$('label'), sub=$('sub');
 const bar=$('barfill'), confval=$('confval'), note=$('note'), top3=$('top3');
 const file=$('file'), opacity=$('opacity'), opval=$('opval'), toggle=$('toggle');
+const folder=$('folder'), strip=$('strip'), summary=$('summary');
+
+let results = [];   // what /predict-batch returned, in order
+let selected = 0;
 
 const diseaseName = s => {
   const [crop, ...rest] = s.split('_');
@@ -203,12 +241,21 @@ opacity.addEventListener('input', applyHeat);
 toggle.addEventListener('click', () => { heatOn = !heatOn; applyHeat(); });
 applyHeat();
 
+const images = list => [...list].filter(f => f.type.startsWith('image/'));
+
 $('pick').addEventListener('click', e => { e.stopPropagation(); file.click(); });
+$('pickdir').addEventListener('click', e => { e.stopPropagation(); folder.click(); });
 stage.addEventListener('click', () => file.click());
 stage.addEventListener('keydown', e => {
   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); file.click(); }
 });
-file.addEventListener('change', () => file.files[0] && send(file.files[0]));
+// A folder pick returns every file in it, so filter. A file pick is already filtered by accept.
+file.addEventListener('change', () => send([...file.files]));
+folder.addEventListener('change', () => {
+  const picked = images(folder.files);
+  if (picked.length) send(picked);
+  else if (folder.files.length) fail('That folder holds no images.');
+});
 
 ['dragenter','dragover'].forEach(t => stage.addEventListener(t, e => {
   e.preventDefault(); stage.classList.add('armed');
@@ -216,16 +263,21 @@ file.addEventListener('change', () => file.files[0] && send(file.files[0]));
 ['dragleave','drop'].forEach(t => stage.addEventListener(t, e => {
   e.preventDefault(); stage.classList.remove('armed');
 }));
-stage.addEventListener('drop', e => {
-  const f = e.dataTransfer.files[0];
-  if (f) send(f);
-});
+stage.addEventListener('drop', e => send([...e.dataTransfer.files]));
 
 document.addEventListener('keydown', e => {
-  if (e.target.matches('input,button,select,textarea')) return;
+  // Arrows work even on a focused thumbnail; Space must not fight a focused control.
+  if (e.key === 'ArrowRight') { e.preventDefault(); return step(1); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); return step(-1); }
+  if (e.target.matches('input,select,textarea,button')) return;
   if (e.code === 'Space') { e.preventDefault(); file.click(); }
   else if (e.key === 'h' || e.key === 'H') { heatOn = !heatOn; applyHeat(); }
 });
+
+function step(delta){
+  if (results.length < 2) return;
+  select((selected + delta + results.length) % results.length);
+}
 
 const ICON = {
   healthy:'<path d="M12 21c-.5-4.6.6-8.2 3.4-11C18 7.4 20.3 6.4 21 6c.5 4.3-.3 7.8-2.6 10.3-2 2.2-4.3 3-6.4 3.2V21Z" fill="currentColor" stroke="none"/><path d="M11 21c-4.2-.3-7-2-8.4-5.2C1.3 12.8 2.2 9.3 3 7.6c3.6 1.4 6 3.6 7.2 6.4.8 2 1 4.3.8 7Z" fill="currentColor" stroke="none" opacity=".6"/>',
@@ -248,29 +300,96 @@ function fail(msg){
   $('ms').textContent='-'; $('dev').textContent='-';
 }
 
-async function send(f){
+const stateOf = r => !r.ok ? 'bad'
+  : r.uncertain ? 'unknown' : (r.healthy ? 'healthy' : 'diseased');
+
+async function send(files){
+  if (!files.length) return;
+  results = []; selected = 0;
+  strip.hidden = true; summary.hidden = true; note.hidden = true;
   empty.hidden = true;
   photo.hidden = false; heat.hidden = false;
   stage.classList.add('has-image');
-  photo.src = URL.createObjectURL(f);
+  photo.src = URL.createObjectURL(files[0]);
   setBadge('unknown','Analysing');
-  label.className=''; label.textContent='Analysing...';
-  sub.textContent = f.name;
-  note.hidden = true;
+  label.className='';
+  label.textContent = files.length > 1 ? `Analysing ${files.length} photos...` : 'Analysing...';
+  sub.textContent = files.length > 1 ? '' : files[0].name;
 
-  const body = new FormData(); body.append('file', f);
+  const body = new FormData();
+  for (const f of files) body.append('files', f);
   let data;
   try {
-    const res = await fetch('/predict', {method:'POST', body});
+    const res = await fetch('/predict-batch', {method:'POST', body});
     data = await res.json();
     if (!res.ok) return fail(data.detail || ('HTTP ' + res.status));
   } catch (err) { return fail('Backend unreachable. Is run_demo.sh still running?'); }
+
+  results = data.results;
+  renderStrip(data.summary);
+  select(results.findIndex(r => r.ok) >= 0 ? results.findIndex(r => r.ok) : 0);
+}
+
+function renderStrip(s){
+  // One photo looks exactly like it always did: no strip, no summary line.
+  const many = results.length > 1;
+  strip.hidden = !many; summary.hidden = !many;
+  if (!many) { strip.replaceChildren(); return; }
+
+  const bits = [`<b>${s.n}</b> ${s.n === 1 ? 'leaf' : 'leaves'}`];
+  if (s.diseased)  bits.push(`<b>${s.diseased}</b> diseased`);
+  if (s.healthy)   bits.push(`<b>${s.healthy}</b> healthy`);
+  if (s.uncertain) bits.push(`<b>${s.uncertain}</b> uncertain`);
+  if (s.failed)    bits.push(`<b>${s.failed}</b> unreadable`);
+  if (s.mean_ms !== null) bits.push(`<b>${s.total_ms}</b> ms total, <b>${s.mean_ms}</b> ms per leaf`);
+  summary.innerHTML = bits.join(' &middot; ');
+
+  strip.replaceChildren(...results.map((r, i) => {
+    const b = document.createElement('button');
+    b.className = 'thumb' + (r.ok ? '' : ' bad');
+    b.type = 'button';
+    b.setAttribute('role', 'tab');
+    b.title = r.name + (r.ok ? ` - ${diseaseName(r.top3[0].label)}` : ` - ${r.error}`);
+    b.setAttribute('aria-label', b.title);
+    if (r.ok) {
+      b.innerHTML = `<img src="${r.image_png}" alt=""><span class="dot ${stateOf(r)}"></span>`;
+    } else {
+      b.textContent = '!';
+    }
+    b.addEventListener('click', () => select(i));
+    return b;
+  }));
+}
+
+function select(i){
+  selected = i;
+  [...strip.children].forEach((b, n) => {
+    b.classList.toggle('sel', n === i);
+    b.setAttribute('aria-selected', String(n === i));
+  });
+  strip.children[i]?.scrollIntoView({block:'nearest', inline:'nearest', behavior:'smooth'});
+  showResult(results[i]);
+}
+
+function showResult(data){
+  if (!data) return;
+  if (!data.ok) {
+    photo.hidden = true; heat.hidden = true;
+    empty.hidden = false; stage.classList.remove('has-image');
+    fail(data.error);
+    sub.textContent = data.name;
+    return;
+  }
+  empty.hidden = true;
+  photo.hidden = false; heat.hidden = false;
+  stage.classList.add('has-image');
+  note.hidden = true;
 
   photo.src = data.image_png;   // the 224 crop, so photo and heatmap align exactly
   heat.src = data.heatmap_png;
   const top = data.top3[0];
   const healthy = data.healthy;
-  const state = data.uncertain ? 'unknown' : (healthy ? 'healthy' : 'diseased');
+  const state = stateOf(data);
 
   if (data.uncertain){
     setBadge('unknown','Uncertain');
@@ -298,6 +417,9 @@ async function send(f){
     `<li><span>${diseaseName(p.label)}</span><b>${(p.confidence*100).toFixed(1)}%</b></li>`).join('');
   $('ms').textContent = data.inference_ms.toFixed(1) + 'ms';
   $('dev').textContent = data.device.toUpperCase();
+
+  // In a batch you need to know which photo you are looking at.
+  if (results.length > 1) sub.textContent = `${data.name} - ` + sub.textContent;
 }
 </script>
 </body>

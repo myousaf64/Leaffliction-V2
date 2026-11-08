@@ -196,10 +196,11 @@ before you hit record and capture only the browser window.
 ```
 
 - Browser window 1280x800, zoom at 100%, bookmarks bar hidden, one tab.
-- Have two photos ready on the desktop: one clearly diseased grape leaf, one healthy leaf.
+- Have photos ready on the desktop: one clearly diseased grape leaf on its own, plus a folder of
+  six mixed leaves for the batch shot.
 - Do a dry run first. The first take is always clumsy with the slider.
 
-### Shot list, about 10 seconds
+### Shot list, about 14 seconds
 
 | t | action |
 |---|---|
@@ -208,10 +209,13 @@ before you hit record and capture only the browser window.
 | 2.0 | result lands. Hold still on the disease label and the confidence bar |
 | 4.0 | drag the heatmap slider 0 to 100 and back to about 55 |
 | 7.0 | press `H` twice so the heatmap blinks off and on |
-| 8.5 | drop the healthy leaf, badge flips to the green "Healthy" state |
-| 10.5 | stop |
+| 8.5 | drag all six leaves in at once. The filmstrip fills and the summary line counts them |
+| 10.5 | press the right arrow three times. The big heatmap follows the selection |
+| 13.0 | land on a healthy leaf so the badge flips to the green state |
+| 14.0 | stop |
 
-That is the whole product in ten seconds: it answers, it explains, and it knows healthy from sick.
+That is the whole product: it answers, it explains, it scans a tray in one gesture, and it knows
+healthy from sick.
 
 ### Convert to a GIF
 
