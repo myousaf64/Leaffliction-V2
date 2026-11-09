@@ -24,7 +24,7 @@ body{
 /* ---- intro cover: the first frame of the demo ---- */
 #intro{
   position:fixed; inset:0; z-index:50; background:var(--forest); color:var(--ivory);
-  display:grid; place-items:center; padding:clamp(20px,4vw,56px);
+  display:grid; place-items:center; padding:clamp(20px,4vw,56px); overflow-y:auto;
   opacity:1; transition:opacity .25s ease;
 }
 #intro.gone{opacity:0; pointer-events:none}
@@ -188,13 +188,20 @@ footer{flex:none;padding:0 clamp(14px,2.2vw,26px) 10px;font-size:11px;color:var(
     <div class="rule"></div>
     <h2 id="introtitle">Early crop disease<br>detection from a phone photo.</h2>
     <p class="lede">
-      A leaf disease caught a week early is a crop saved. A grower holding a phone is the only
-      sensor that scales to every row of every field.
+      Detect plant diseases in seconds, so a grower can act while the problem is still small. A
+      leaf disease caught a week early is a crop saved, and a phone is the only sensor that scales
+      to every row of every field.
     </p>
     <div id="introstats"></div>
     <p class="how">
-      Point it at an apple or grape leaf. It names the disease, scores how sure it is, and paints
-      the exact pixels it used to decide - so you can tell a real diagnosis from a lucky guess.
+      Point it at an apple or grape leaf. It names the disease, reports its confidence in that
+      answer, and paints the exact pixels it used to decide - so you can tell a real diagnosis from
+      a lucky guess.
+    </p>
+    <p class="how">
+      Who it serves: growers and agronomists scouting rows with a phone, greenhouse and
+      vertical-farm teams checking crops daily, and agritech products that need a model small
+      enough to run on the device, with no cloud GPU.
     </p>
     <div class="cta">
       <button id="enter">Try it</button>
@@ -262,7 +269,7 @@ footer{flex:none;padding:0 clamp(14px,2.2vw,26px) 10px;font-size:11px;color:var(
     <h2 id="label">Awaiting a leaf</h2>
     <p class="sub" id="sub">Pick a photo to run the classifier.</p>
 
-    <div class="meter"><span>Confidence</span><span id="confval">-</span></div>
+    <div class="meter"><span>AI confidence</span><span id="confval">-</span></div>
     <div class="bar"><i id="barfill"></i></div>
 
     <p class="note" id="note" hidden></p>
@@ -491,7 +498,7 @@ function showResult(data){
     label.className=''; label.textContent='Not sure';
     sub.textContent = 'Best guess ' + diseaseName(top.label) + '. This may not be an apple or grape leaf.';
     note.hidden = false;
-    note.textContent = 'Top confidence ' + (top.confidence*100).toFixed(1) +
+    note.textContent = 'AI confidence ' + (top.confidence*100).toFixed(1) +
       '% is below the 40% threshold, so no diagnosis is shown.';
   } else if (healthy){
     setBadge('healthy','Healthy');
