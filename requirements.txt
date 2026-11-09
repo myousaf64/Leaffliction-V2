@@ -1,5 +1,5 @@
 # Leaffliction v2 - pinned. Python 3.10, CUDA 13.0 wheels.
-# Install: python3.10 -m venv .venv && .venv/bin/pip install -r requirements.txt
+# Install: uv venv --python 3.10 && uv pip install -r requirements.txt
 torch==2.14.1
 torchvision==0.29.2
 ultralytics==8.4.202
