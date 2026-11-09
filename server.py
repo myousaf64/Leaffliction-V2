@@ -28,13 +28,27 @@ STATE: dict = {}
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    import json
+
     model, names, device = load_model()
     cam_layer = "head"
     cam_json = ROOT / "assets" / "cam" / "cam.json"
     if cam_json.exists():
-        import json
         cam_layer = json.loads(cam_json.read_text()).get("target_layer", "head")
-    STATE.update(model=model, names=names, device=device, cam_layer=cam_layer)
+
+    meta = None
+    metrics = ROOT / "metrics.json"
+    if metrics.exists():
+        m = json.loads(metrics.read_text())
+        meta = {
+            "accuracy": m["test"]["accuracy"],
+            "n": m["test"]["n"],
+            "gpu_ms": m["latency_ms"]["gpu"],
+            "cpu_ms": m["latency_ms"]["cpu"],
+            "size_mb": m["model"]["size_mb"],
+            "classes": len(m["classes"]),
+        }
+    STATE.update(model=model, names=names, device=device, cam_layer=cam_layer, meta=meta)
     # Warm up once. The first forward pays for kernel autotuning (~170 ms), and a demo
     # that reports that as its inference time is lying about the model.
     warm = Image.new("RGB", (IMGSZ, IMGSZ), (90, 130, 70))
@@ -77,6 +91,17 @@ def _heat_png(heat: np.ndarray) -> Image.Image:
 @app.get("/")
 def index():
     return FileResponse(ROOT / "index.html")
+
+
+@app.get("/meta")
+def meta():
+    """Measured headline numbers for the intro cover.
+
+    404 when metrics.json is absent, so the page omits the tiles rather than inventing them.
+    """
+    if not STATE.get("meta"):
+        raise HTTPException(404, "No metrics.json. Run: uv run python pipeline.py eval")
+    return JSONResponse(STATE["meta"])
 
 
 def _analyse(raw: bytes) -> dict:

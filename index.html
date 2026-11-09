@@ -13,16 +13,50 @@
   --r:14px;
 }
 *{box-sizing:border-box;margin:0}
-html,body{height:100%}
+/* The page is viewport-locked: it never scrolls. Height flows down from here, so every
+   descendant that must shrink carries min-height:0 to escape the flex default of min-content. */
+html,body{height:100dvh;overflow:hidden}
 body{
   background:var(--ivory); color:var(--charcoal); font-family:var(--font);
   -webkit-font-smoothing:antialiased; display:flex; flex-direction:column;
 }
 
+/* ---- intro cover: the first frame of the demo ---- */
+#intro{
+  position:fixed; inset:0; z-index:50; background:var(--forest); color:var(--ivory);
+  display:grid; place-items:center; padding:clamp(20px,4vw,56px);
+  opacity:1; transition:opacity .25s ease;
+}
+#intro.gone{opacity:0; pointer-events:none}
+#intro[hidden]{display:none}
+.intro-inner{max-width:62ch; display:flex; flex-direction:column; gap:clamp(12px,1.8vh,22px)}
+.kicker{
+  font-size:clamp(11px,1.1vw,13px); font-weight:700; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--lime);
+}
+.rule{width:92px; height:5px; background:var(--lime); border-radius:3px}
+#intro h2{
+  font-size:clamp(30px,5.2vw,58px); line-height:1.06; letter-spacing:-.025em;
+  font-weight:800; color:var(--ivory);
+}
+#intro .lede{font-size:clamp(14px,1.5vw,18px); line-height:1.55; color:var(--sage); max-width:52ch}
+#intro .how{font-size:clamp(13px,1.25vw,15px); line-height:1.5; color:var(--sage); opacity:.88}
+#introstats{display:flex; gap:clamp(10px,1.4vw,18px); flex-wrap:wrap}
+#introstats div{background:rgba(248,247,240,.08); border-radius:10px; padding:10px 16px; min-width:112px}
+#introstats span{
+  display:block; font-size:10.5px; font-weight:700; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--lime);
+}
+#introstats b{font-family:var(--mono); font-size:clamp(19px,2.3vw,27px); font-weight:650; color:var(--ivory)}
+.cta{display:flex; align-items:center; gap:14px; flex-wrap:wrap}
+#enter{font-size:15px; padding:12px 26px}
+.cta em{font-style:normal; font-size:12.5px; color:var(--sage); opacity:.8}
+.fine{font-size:11px; line-height:1.5; color:var(--sage); opacity:.6; max-width:60ch}
+
 /* ---- navbar ---- */
 header{
-  background:var(--forest); color:var(--ivory);
-  padding:14px clamp(16px,4vw,40px); display:flex; align-items:center;
+  flex:none; background:var(--forest); color:var(--ivory);
+  padding:11px clamp(16px,4vw,40px); display:flex; align-items:center;
   gap:14px; flex-wrap:wrap; border-bottom:3px solid var(--lime);
 }
 .mark{width:26px;height:26px;flex:none;color:var(--lime)}
@@ -31,21 +65,29 @@ header p{font-size:13px;color:var(--sage);margin-left:auto;max-width:38ch;line-h
 
 /* ---- layout: 2 columns when wide, 1 when tall ---- */
 main{
-  flex:1; display:grid; gap:clamp(16px,2.2vw,26px);
-  padding:clamp(16px,2.6vw,30px); align-content:start;
-  grid-template-columns:minmax(0,1fr);
+  flex:1; min-height:0; display:grid; gap:clamp(14px,2vw,24px);
+  padding:clamp(14px,2.2vw,26px); grid-template-columns:minmax(0,1fr);
+  overflow:hidden;
 }
 @media (min-width:900px) and (min-aspect-ratio:1/1){
-  main{grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr); align-content:stretch}
+  main{grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr)}
+}
+/* Below 900px, or in portrait, two stacked cards cannot both fit a viewport and stay
+   readable. There the work area scrolls on its own; the header and footer stay put. */
+@media (max-width:899px), (max-aspect-ratio:1/1){
+  main{overflow-y:auto; grid-auto-rows:min-content}
+  #stage{min-height:46vh}
 }
 .card{
-  background:var(--sage); border-radius:var(--r); padding:clamp(14px,2vw,22px);
-  border:1px solid #d6e0d2; min-width:0;
+  background:var(--sage); border-radius:var(--r); padding:clamp(12px,1.7vw,20px);
+  border:1px solid #d6e0d2; min-width:0; min-height:0;
+  display:flex; flex-direction:column;
 }
+.card.verdict{overflow-y:auto}   /* last resort, so the page itself never scrolls */
 
 /* ---- image stage ---- */
 #stage{
-  position:relative; width:100%; aspect-ratio:1/1; border-radius:10px;
+  position:relative; width:100%; flex:1; min-height:0; border-radius:10px;
   overflow:hidden; background:var(--ivory); display:grid; place-items:center;
   border:2px dashed #c3d1bd; cursor:pointer; transition:border-color .15s;
 }
@@ -60,17 +102,17 @@ main{
 
 /* ---- filmstrip ---- */
 #summary{
-  margin-top:14px;font-size:13px;font-weight:600;color:var(--charcoal);
-  line-height:1.5;
+  margin-top:10px;font-size:12.5px;font-weight:600;color:var(--charcoal);
+  line-height:1.45;flex:none;
 }
 #summary b{font-family:var(--mono);font-weight:650}
 #summary[hidden],#strip[hidden]{display:none}
 #strip{
-  display:flex;gap:8px;margin-top:10px;padding:4px 2px 10px;
-  overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:thin;
+  display:flex;gap:8px;margin-top:8px;padding:3px 2px 6px;flex:none;
+  overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;scrollbar-width:thin;
 }
 .thumb{
-  position:relative;flex:none;width:74px;height:74px;padding:0;border-radius:9px;
+  position:relative;flex:none;width:64px;height:64px;padding:0;border-radius:9px;
   overflow:hidden;background:var(--ivory);border:2px solid transparent;
   cursor:pointer;scroll-snap-align:center;
 }
@@ -87,7 +129,7 @@ main{
 .dot.unknown{background:var(--ivory);box-shadow:inset 0 0 0 2px var(--forest)}
 
 /* ---- controls ---- */
-.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;flex:none}
 button{
   font:inherit;font-weight:650;font-size:14px;padding:10px 18px;border:0;
   border-radius:999px;background:var(--lime);color:var(--forest);cursor:pointer;
@@ -97,7 +139,7 @@ button:focus-visible,#stage:focus-visible,input:focus-visible{outline:3px solid 
 button.ghost{background:transparent;color:var(--forest);border:1.5px solid var(--forest)}
 label.slider{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:var(--forest);flex:1;min-width:190px}
 input[type=range]{flex:1;min-width:90px;accent-color:var(--forest)}
-.keys{margin-top:12px;font-size:12px;color:var(--forest);opacity:.85;line-height:1.7}
+.keys{margin-top:9px;font-size:11.5px;color:var(--forest);opacity:.85;line-height:1.6;flex:none}
 kbd{
   font-family:var(--mono);font-size:11px;background:var(--ivory);color:var(--charcoal);
   border:1px solid #c3d1bd;border-bottom-width:2px;border-radius:5px;padding:1px 6px;
@@ -112,7 +154,7 @@ kbd{
 .badge.healthy{background:var(--forest);color:var(--ivory);border-color:var(--forest)}
 .badge.diseased{background:var(--ivory);color:var(--terracotta-text);border-color:var(--terracotta)}
 .badge.unknown{background:var(--ivory);color:var(--forest);border-color:var(--forest)}
-h2#label{font-size:clamp(26px,4.4vw,40px);line-height:1.1;letter-spacing:-.02em;margin:16px 0 4px}
+h2#label{font-size:clamp(22px,3.4vw,34px);line-height:1.08;letter-spacing:-.02em;margin:10px 0 3px}
 h2#label.healthy{color:var(--forest)}
 h2#label.diseased{color:var(--terracotta-text)}
 .sub{font-size:13px;color:var(--charcoal);opacity:.75}
@@ -120,24 +162,50 @@ h2#label.diseased{color:var(--terracotta-text)}
 .bar>i{display:block;height:100%;width:0;border-radius:999px;transition:width .35s ease}
 .bar>i.healthy{background:var(--forest)}
 .bar>i.diseased{background:var(--terracotta)}
-.meter{display:flex;justify-content:space-between;font-size:12px;font-weight:650;color:var(--forest);margin-top:18px;text-transform:uppercase;letter-spacing:.06em}
-ol#top3{list-style:none;padding:0;margin:18px 0 0;display:grid;gap:7px}
-ol#top3 li{display:grid;grid-template-columns:1fr auto;gap:10px;font-size:14px;padding:9px 12px;background:var(--ivory);border-radius:8px}
+.meter{display:flex;justify-content:space-between;font-size:11.5px;font-weight:650;color:var(--forest);margin-top:12px;text-transform:uppercase;letter-spacing:.06em}
+ol#top3{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:6px}
+ol#top3 li{display:grid;grid-template-columns:1fr auto;gap:10px;font-size:13.5px;padding:7px 11px;background:var(--ivory);border-radius:8px}
 ol#top3 li:first-child{font-weight:700}
 ol#top3 b{font-family:var(--mono);font-weight:650}
-.stats{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
-.stat{background:var(--ivory);border-radius:8px;padding:9px 13px;min-width:94px}
+.stats{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+.stat{background:var(--ivory);border-radius:8px;padding:7px 12px;min-width:90px}
 .stat span{display:block;font-size:10.5px;font-weight:700;color:var(--forest);text-transform:uppercase;letter-spacing:.07em}
 .stat b{font-family:var(--mono);font-size:18px;font-weight:650;color:var(--charcoal)}
 .note{margin-top:16px;font-size:13px;line-height:1.5;padding:11px 14px;border-radius:9px;
   background:var(--ivory);border-left:4px solid var(--terracotta);color:var(--terracotta-text)}
 .note[hidden]{display:none}
 .idle{color:var(--forest);opacity:.75;font-size:14px;line-height:1.6}
-footer{padding:0 clamp(16px,2.6vw,30px) 20px;font-size:11.5px;color:var(--charcoal);opacity:.6;line-height:1.6}
+footer{flex:none;padding:0 clamp(14px,2.2vw,26px) 10px;font-size:11px;color:var(--charcoal);opacity:.6;
+  line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
 </style>
 </head>
 <body>
+
+<section id="intro" role="dialog" aria-modal="true" aria-labelledby="introtitle">
+  <div class="intro-inner">
+    <p class="kicker">Crop disease detection</p>
+    <div class="rule"></div>
+    <h2 id="introtitle">Early crop disease<br>detection from a phone photo.</h2>
+    <p class="lede">
+      A leaf disease caught a week early is a crop saved. A grower holding a phone is the only
+      sensor that scales to every row of every field.
+    </p>
+    <div id="introstats"></div>
+    <p class="how">
+      Point it at an apple or grape leaf. It names the disease, scores how sure it is, and paints
+      the exact pixels it used to decide - so you can tell a real diagnosis from a lucky guess.
+    </p>
+    <div class="cta">
+      <button id="enter">Try it</button>
+      <em>or press any key</em>
+    </div>
+    <p class="fine">
+      yolo11n-cls fine-tuned on the PlantVillage apple and grape subset. Ultralytics YOLO11 is
+      AGPL-3.0; commercial use needs an Ultralytics licence.
+    </p>
+  </div>
+</section>
 
 <header>
   <svg class="mark" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -184,7 +252,7 @@ footer{padding:0 clamp(16px,2.6vw,30px) 20px;font-size:11.5px;color:var(--charco
     <input id="folder" type="file" accept="image/*" multiple webkitdirectory class="sr">
   </section>
 
-  <section class="card" aria-live="polite">
+  <section class="card verdict" aria-live="polite">
     <span class="badge unknown" id="badge">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1" stroke-linecap="round"/>
@@ -209,8 +277,8 @@ footer{padding:0 clamp(16px,2.6vw,30px) 20px;font-size:11.5px;color:var(--charco
 </main>
 
 <footer>
-  yolo11n-cls fine-tuned on the PlantVillage apple and grape subset. Grad-CAM shows the pixels that drove
-  the prediction. Ultralytics YOLO11 is AGPL-3.0; commercial use needs an Ultralytics licence.
+  yolo11n-cls on the PlantVillage apple and grape subset. Grad-CAM marks the pixels that drove the
+  prediction. Ultralytics YOLO11 is AGPL-3.0.
 </footer>
 
 <script>
@@ -223,6 +291,33 @@ const folder=$('folder'), strip=$('strip'), summary=$('summary');
 
 let results = [];   // what /predict-batch returned, in order
 let selected = 0;
+
+/* ---- intro cover ---- */
+const intro = $('intro');
+let introUp = true;
+function closeIntro(){
+  if (!introUp) return;
+  introUp = false;
+  intro.classList.add('gone');
+  setTimeout(() => { intro.hidden = true; }, 260);
+}
+$('enter').addEventListener('click', closeIntro);
+intro.addEventListener('click', closeIntro);
+// Any key dismisses, so the opening of a recording needs no aiming.
+document.addEventListener('keydown', e => { if (introUp) { e.preventDefault(); closeIntro(); } }, true);
+
+// Numbers on the cover come from metrics.json by way of the server. If they are not
+// measured, no tiles appear - the page never shows a figure nobody produced.
+fetch('/meta').then(r => r.ok ? r.json() : null).then(m => {
+  if (!m) return;
+  const tiles = [
+    ['Test accuracy', (m.accuracy * 100).toFixed(2) + '%'],
+    m.gpu_ms ? ['Per image', m.gpu_ms.toFixed(2) + ' ms'] : null,
+    ['Model', m.size_mb.toFixed(1) + ' MB'],
+    ['Classes', String(m.classes)],
+  ].filter(Boolean);
+  $('introstats').innerHTML = tiles.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('');
+}).catch(() => {});
 
 const diseaseName = s => {
   const [crop, ...rest] = s.split('_');

@@ -4,8 +4,7 @@ Drop in a photo of an apple or grape leaf. The model names the disease, says how
 paints a heatmap over the exact pixels it used to decide.
 
 ![demo](./docs/demo.gif)
-<!-- PLACEHOLDER: docs/demo.gif does not exist yet. Record it with the shot list in LAUNCH.md
-     (run `python linkedin.py` to generate that file), then drop the GIF at docs/demo.gif. -->
+<!-- PLACEHOLDER: docs/demo.gif does not exist yet. Record the demo, then drop the GIF here. -->
 
 8 classes: apple black rot, apple healthy, apple rust, apple scab, grape black rot, grape esca,
 grape healthy, grape leaf spot.
@@ -25,14 +24,18 @@ The trained weights are committed, so this works from a cold clone. No training 
 ```bash
 git clone https://github.com/myousaf64/Leaffliction-V2.git
 cd Leaffliction-V2
-python3.10 -m venv .venv && .venv/bin/pip install -r requirements.txt
+uv venv --python 3.10 && uv pip install -r requirements.txt
 ./run_demo.sh
 ```
 
 `run_demo.sh` starts the backend, waits for it to answer, and opens
 <http://127.0.0.1:8000> in your browser.
 
-In the page:
+The page opens on an intro screen explaining the project. Press any key or click **Try it** to
+enter the app; reload to see it again. The layout is viewport-locked, so nothing scrolls while you
+work - not even with a full filmstrip loaded.
+
+In the app:
 
 - Drag one leaf photo onto the drop zone, or drag a dozen. Click it to pick files instead.
   On a phone the picker offers the camera.
@@ -52,7 +55,7 @@ Use a different port with `PORT=8080 ./run_demo.sh`.
 
 ### What to expect on the first run
 
-- `pip install` pulls roughly 3 GB of CUDA wheels. It takes a few minutes.
+- `uv pip install` pulls roughly 3 GB of CUDA wheels. uv does it in well under a minute.
 - No NVIDIA GPU is required. Without one, PyTorch falls back to CPU and inference runs at about
   6.8 ms per image, which is still instant in the browser.
 - The server warms the model up at startup, so the first prediction is as fast as the rest.
@@ -61,7 +64,8 @@ Use a different port with `PORT=8080 ./run_demo.sh`.
 
 | | |
 |---|---|
-| Python | 3.10 or newer |
+| uv | any recent version - it manages Python for you |
+| Python | 3.10, installed by uv if you do not have it |
 | Disk | ~4 GB for the virtual environment, plus 129 MB if you also fetch the dataset |
 | GPU | optional. NVIDIA with a recent driver for the 2 ms path |
 | OS | developed and measured on Linux |
@@ -102,20 +106,20 @@ images/
 ### 2. Run the chain
 
 ```bash
-.venv/bin/python pipeline.py split     # 70/15/15 + offline balance  -> splits_report.txt
-.venv/bin/python pipeline.py train     # fine-tune yolo11n-cls        -> runs/cls/weights/best.pt
-.venv/bin/python pipeline.py eval      # test split only              -> metrics.json
-.venv/bin/python pipeline.py cam       # Grad-CAM layer probe         -> assets/cam/
-.venv/bin/python pipeline.py export    # ONNX                         -> runs/cls/weights/best.onnx
-.venv/bin/python assets.py             # 6 PNGs + carousel.pdf        -> assets/
-.venv/bin/python linkedin.py           # launch playbook              -> LAUNCH.md
+uv run python pipeline.py split     # 70/15/15 + offline balance  -> splits_report.txt
+uv run python pipeline.py train     # fine-tune yolo11n-cls        -> runs/cls/weights/best.pt
+uv run python pipeline.py eval      # test split only              -> metrics.json
+uv run python pipeline.py cam       # Grad-CAM layer probe         -> assets/cam/
+uv run python pipeline.py export    # ONNX                         -> runs/cls/weights/best.onnx
+uv run python assets.py             # 6 PNGs + carousel.pdf        -> assets/
 ```
 
 Measured on an RTX 3050 Ti Laptop (4 GB): split about 90 seconds, training 22 epochs in roughly
 5 minutes at batch 32, evaluation under a minute. Training stops early on patience 10, so the epoch
 count varies with the seed.
 
-`pipeline.py self-check` runs the assertions on the pure logic and needs no weights and no dataset.
+`uv run python pipeline.py self-check` runs the assertions on the pure logic and needs no weights
+and no dataset.
 
 ## Results
 
@@ -165,10 +169,12 @@ The honest number after the fix is lower. It is also real.
 |---|---|
 | `torch.cuda.is_available()` is False | No NVIDIA driver, or a driver older than the CUDA wheels. The demo still works on CPU. For training, fix the driver first - CPU training takes hours. |
 | `Address already in use` on 8000 | Something else holds the port. Run `PORT=8080 ./run_demo.sh`. |
-| `no weights. run: .venv/bin/python pipeline.py train` | `runs/cls/weights/best.pt` is missing. It ships in the repository, so this means it was deleted or the clone was shallow. Re-clone, or pull it from the v2.0 release. |
+| `no weights. run: uv run python pipeline.py train` | `runs/cls/weights/best.pt` is missing. It ships in the repository, so this means it was deleted or the clone was shallow. Re-clone, or pull it from the v2.0 release. |
 | `CUDA out of memory` during training | `pipeline.py train` retries at batch 16 then 8 by itself. If all three fail, close other GPU processes or pass `--batch 8`. |
 | `missing dataset directory: .../images` | The dataset is not in the repository. See "Reproduce the model from scratch". |
-| `missing metrics.json` from `assets.py` or `linkedin.py` | Run `pipeline.py eval` first. Both scripts refuse to invent numbers. |
+| `missing metrics.json` from `assets.py` | Run `pipeline.py eval` first. The script refuses to invent numbers. |
+| The intro screen shows no numbers | `/meta` returned 404 because `metrics.json` is absent. Run `pipeline.py eval`. The page omits the tiles rather than guessing. |
+| `uv is not installed` | Install it: <https://docs.astral.sh/uv/getting-started/installation/> |
 | `33 files. The limit is 32 images at a time.` | Batch cap. Send fewer, or run two batches. |
 | `The batch is over 64 MB. Send fewer photos.` | Total upload cap. Individual files are capped at 10 MB. |
 | **Choose folder** does nothing | Firefox does not support `webkitdirectory`. Drag the files onto the drop zone instead. |
@@ -180,8 +186,7 @@ The honest number after the fix is lower. It is also real.
 |---|---|
 | `pipeline.py` | split, train, eval, cam, export. Also the shared module: `load_model`, `preprocess`, `predict`, `gradcam`, `leaf_mask` |
 | `assets.py` | the six 1080x1350 PNGs and `carousel.pdf`, every number read from `metrics.json` |
-| `linkedin.py` | generates `LAUNCH.md`: post copy, carousel order, recording shot list, checklist |
-| `server.py` | FastAPI. `POST /predict` for one image, `POST /predict-batch` for up to 32, both returning top-3, a Grad-CAM overlay and inference ms |
+| `server.py` | FastAPI. `POST /predict` for one image, `POST /predict-batch` for up to 32, `GET /meta` for the intro screen's numbers |
 | `index.html` | the demo page. One file, no framework, no build step |
 | `run_demo.sh` | starts the backend, waits for it, opens the page |
 | `splits_report.txt`, `metrics.json` | generated, the source of every published number |
