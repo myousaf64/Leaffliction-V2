@@ -1,5 +1,7 @@
 # Leaffliction v2
 
+[![CI](https://github.com/myousaf64/Leaffliction-V2/actions/workflows/ci.yml/badge.svg)](https://github.com/myousaf64/Leaffliction-V2/actions/workflows/ci.yml)
+
 Drop in a photo of an apple or grape leaf. The model names the disease, says how sure it is, and
 paints a heatmap over the exact pixels it used to decide.
 
